@@ -41,5 +41,8 @@ defmodule Avrora.Config do
   @doc false
   def ets_lib, do: get_env(:ets_lib, Avrora.AvroSchemaStore)
 
-  defp get_env(name, default), do: Application.get_env(:avrora, name, default)
+  defp get_env(name, default) do
+    string_env_name = "AVRORA_" <> String.upcase(Atom.to_string(name))
+    System.get_env(string_env_name) || Application.get_env(:avrora, name, default)
+  end
 end
