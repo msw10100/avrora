@@ -77,7 +77,7 @@ defmodule Avrora.Resolver do
   def resolve(name) when is_binary(name) do
     with {:ok, schema_name} <- Name.parse(name),
          {:ok, nil} <- memory_storage().get(name),
-         {:ok, schema} <- file_storage().get(name) do
+         {:ok, schema} <- registry_storage().get(name) do
       response =
         if is_nil(schema_name.version),
           do: registry_storage().put(schema_name.name, schema.json),
