@@ -97,7 +97,7 @@ defmodule Avrora.Storage.Registry do
   defp http_client_get(path), do: http_client_get(path, @retry_count)
 
   defp http_client_get(path, 0) do
-    Logger.error("#{inspect(__MODULE__)}: http_client_get(\"#{path}\")Retry count exceeded")
+    Logger.error("#{inspect(__MODULE__)}: http_client_get(\"#{path}\") Retry count exceeded")
     {:error, :rety_count_exceeded}
   end
 
@@ -113,11 +113,24 @@ defmodule Avrora.Storage.Registry do
     end
   end
 
-  defp http_client_post(path, payload) do
-    if configured?() do
-      path |> to_url() |> http_client().post(payload, content_type: @content_type) |> handle()
-    else
-      {:error, :unconfigured_registry_url}
+  defp http_client_post(path, payload), do: http_client_post(path, payload, @retry_count)
+
+  defp http_client_post(path, _payload, 0) do
+    Logger.error("#{inspect(__MODULE__)}: http_client_post(\"#{path}\") Retry count exceeded")
+    {:error, :rety_count_exceeded}
+  end
+
+  defp http_client_post(path, payload, retry_count) do
+    try do
+      if configured?() do
+        path |> to_url() |> http_client().post(payload, content_type: @content_type) |> handle()
+      else
+        {:error, :unconfigured_registry_url}
+      end
+    rescue
+      _error ->
+        :timer.sleep(:random.uniform(50))
+        http_client_post(path, payload, retry_count - 1)
     end
   end
 
