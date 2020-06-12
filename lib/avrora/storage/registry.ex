@@ -14,6 +14,7 @@ defmodule Avrora.Storage.Registry do
 
   @behaviour Avrora.Storage
   @content_type "application/vnd.schemaregistry.v1+json"
+  @retry_count 10
 
   @doc """
   Get schema by subject name.
@@ -93,10 +94,23 @@ defmodule Avrora.Storage.Registry do
   @spec configured?() :: true | false
   def configured?, do: !is_nil(Config.registry_url())
 
-  defp http_client_get(path) do
-    if configured?(),
-      do: path |> to_url() |> http_client().get() |> handle(),
-      else: {:error, :unconfigured_registry_url}
+  defp http_client_get(path), do: http_client_get(path, @retry_count)
+
+  defp http_client_get(path, 0) do
+    Logger.error("#{inspect(__MODULE__)}: http_client_get(\"#{path}\")Retry count exceeded")
+    {:error, :rety_count_exceeded}
+  end
+
+  defp http_client_get(path, retry_count) do
+    try do
+      if configured?(),
+        do: path |> to_url() |> http_client().get() |> handle(),
+        else: {:error, :unconfigured_registry_url}
+    rescue
+      _error ->
+        :timer.sleep(:random.uniform(50))
+        http_client_get(path, retry_count - 1)
+    end
   end
 
   defp http_client_post(path, payload) do
