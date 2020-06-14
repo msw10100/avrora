@@ -112,6 +112,14 @@ defmodule Avrora.Encoder do
   def encode(payload, schema_name: schema_name) when is_map(payload),
     do: encode(payload, schema_name: schema_name, format: :guess)
 
+  def encode(payload, schema: schema, format: :registry) when is_map(payload) do
+    {:ok, body} = do_encode(schema, payload)
+
+    if is_nil(schema.id),
+      do: {:error, :invalid_schema_id},
+      else: do_embed_id(schema.id, body)
+  end
+
   def encode(payload, schema_name: schema_name, format: format) when is_map(payload) do
     with {:ok, schema_name} <- Name.parse(schema_name),
          {:ok, schema} <- Resolver.resolve(schema_name.name),
